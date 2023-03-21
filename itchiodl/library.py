@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 import functools
 import threading
 import requests
+import traceback
 from bs4 import BeautifulSoup
 
 from itchiodl.game import Game
@@ -96,13 +97,23 @@ class Library:
 
             def dl(i, g):
                 try:
-                    g.download(self.login, platform)
+                    x = g.download(self.login, platform)
+                except:
+                    with lock:
+                        i[1] += 1
+                        with open("errors.txt", "a") as f:
+                            f.write(
+                                f""" An error occurred while downloading: {g.name}\n """
+                            )
+                            traceback.print_exc(file=f)
+                            f.write(
+                                f""" -----------------------------------------------\n  """
+                            )
+                finally:
                     with lock:
                         i[0] += 1
                     print(f"Downloaded {g.name} ({i[0]} of {l})")
-                except NoDownloadError as e:
-                    print(e)
-                    i[1] += 1
+                    return x
 
             r = executor.map(functools.partial(dl, i), self.games)
             for _ in r:
